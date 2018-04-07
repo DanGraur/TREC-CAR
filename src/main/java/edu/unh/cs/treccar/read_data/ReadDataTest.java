@@ -41,6 +41,7 @@ public class ReadDataTest {
             for(Data.Page page: DeserializeData.iterableAnnotations(fileInputStream3)) {
                 for (List<Data.Section> sectionPath : page.flatSectionPaths()){
                     System.out.println(Data.sectionPathId(page.getPageId(), sectionPath)+"   \t "+Data.sectionPathHeadings(sectionPath));
+
                 }
                 System.out.println();
             }

@@ -37,7 +37,7 @@ public abstract class QueryBuilder {
      */
     public QueryBuilder(Analyzer analyzer, int maxTokens) {
         this.analyzer = analyzer;
-        this.tokens = new ArrayList<>(tokens);
+        this.tokens = new ArrayList<>(maxTokens);
     }
 
     /**
