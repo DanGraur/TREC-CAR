@@ -40,7 +40,9 @@ public class ReadDataTest {
             final FileInputStream fileInputStream3 = new FileInputStream(new File(pagesFile));
             for(Data.Page page: DeserializeData.iterableAnnotations(fileInputStream3)) {
                 for (List<Data.Section> sectionPath : page.flatSectionPaths()){
-                    System.out.println(Data.sectionPathId(page.getPageId(), sectionPath)+"   \t "+Data.sectionPathHeadings(sectionPath));
+                    System.out.println(page.getPageName()+"   \t "+Data.sectionPathId(page.getPageId(), sectionPath)+"   \t "+Data.sectionPathHeadings(sectionPath));
+
+                    String test = page.getPageName() + " " + String.join(" ", Data.sectionPathHeadings(sectionPath));
 
                 }
                 System.out.println();
