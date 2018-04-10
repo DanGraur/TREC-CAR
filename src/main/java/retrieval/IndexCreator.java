@@ -3,6 +3,7 @@ package retrieval;
 import co.nstant.in.cbor.CborException;
 import edu.unh.cs.treccar.Data;
 import edu.unh.cs.treccar.read_data.DeserializeData;
+import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -10,6 +11,8 @@ import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.FSDirectory;
+import org.jetbrains.annotations.Nullable;
+import org.tartarus.snowball.SnowballProgram;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -28,7 +31,7 @@ public class IndexCreator {
     /**
      * The analyzer
      */
-    private static StandardAnalyzer analyzer = new StandardAnalyzer();
+    private Analyzer analyzer;
 
     /**
      *  Path to the index directory
@@ -40,12 +43,26 @@ public class IndexCreator {
      */
     private String pathToParagraphFile;
 
+    public IndexCreator(String pathToParagraphFile, String pathToIndex, Analyzer analyzer) {
+        this.analyzer = analyzer;
+        this.pathToParagraphFile = pathToParagraphFile;
+        this.pathToIndex = pathToIndex;
+    }
+
+    public IndexCreator(String pathToParagraphFile,  Analyzer analyzer) {
+        this.analyzer = analyzer;
+        this.pathToParagraphFile = pathToParagraphFile;
+        this.pathToIndex = "./index";
+    }
+
     public IndexCreator(String pathToParagraphFile, String pathToIndex) {
+        this.analyzer = new StandardAnalyzer();
         this.pathToParagraphFile = pathToParagraphFile;
         this.pathToIndex = pathToIndex;
     }
 
     public IndexCreator(String pathToParagraphFile) {
+        this.analyzer = new StandardAnalyzer();
         this.pathToParagraphFile = pathToParagraphFile;
         this.pathToIndex = "./index";
     }

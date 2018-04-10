@@ -1,5 +1,6 @@
 package eval;
 
+import javafx.util.Pair;
 import org.apache.lucene.benchmark.quality.QualityStats;
 import query.TRECQuery;
 import retrieval.QuerySolver;
@@ -33,8 +34,10 @@ public class Evaluator {
      *
      * @return a QualityStats object, which aggregates the evaluation results
      */
-    public QualityStats evaluate() {
+    public Pair<QualityStats, Double> evaluate() {
+        double rPrecAvg = 0.0;
         List<QualityStats> individualResults = new ArrayList<>();
+
 
         for (TRECQuery trecQuery : groundTruths.keySet()) {
             Set<String> optimalResults = groundTruths.get(trecQuery);
@@ -52,9 +55,14 @@ public class Evaluator {
 
             individualResults.add(qs);
 
-            System.out.println(qs.getPrecisionAt(5));
+            /* Precision @ optimalResults.size() is in fact R-Prec */
+            int maxGoodRes = optimalResults.size() == 0 ? 1 : (optimalResults.size() > 20 ? 20 : optimalResults.size());
+            rPrecAvg += qs.getPrecisionAt(maxGoodRes);
+            System.out.println(qs.getPrecisionAt(maxGoodRes));
         }
 
-        return QualityStats.average(individualResults.toArray(new QualityStats[individualResults.size()]));
+        int resSize = individualResults.size();
+
+        return new Pair<>(QualityStats.average(individualResults.toArray(new QualityStats[resSize])), rPrecAvg / resSize);
     }
 }

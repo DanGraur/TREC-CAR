@@ -1,4 +1,4 @@
-package query;
+package query.analyzer;
 
 import org.apache.lucene.analysis.CharArraySet;
 

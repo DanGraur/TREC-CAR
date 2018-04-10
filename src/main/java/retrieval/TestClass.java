@@ -2,16 +2,20 @@ package retrieval;
 
 import co.nstant.in.cbor.CborException;
 import eval.Evaluator;
+import javafx.util.Pair;
 import org.apache.lucene.benchmark.quality.QualityStats;
+import org.apache.lucene.search.similarities.ClassicSimilarity;
+import org.apache.lucene.search.similarities.LMDirichletSimilarity;
 import query.ReadQRels;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.search.similarities.BM25Similarity;
 import query.BinaryQueryBuilder;
-import query.MyStopWords;
+import query.analyzer.CustomAnalyzer;
+import query.analyzer.MyStopWords;
 import query.TRECQuery;
 
 import java.io.IOException;
-import java.util.List;
+import java.io.PrintWriter;
 import java.util.Map;
 import java.util.Set;
 
@@ -20,22 +24,38 @@ import java.util.Set;
  */
 public class TestClass {
 
+    /**
+     * This points to the QRel file which will be used towards gathering the ground truths
+     */
+    private static final String QREL_FILE = "./data_14/train.test200.cbor.hierarchical.qrels";
+    /**
+     * This points to the outline file which will be used towards extracting all the possible queries
+     */
+    private static final String OUTLINE_FILE = "./data_14/train.test200.cbor.outlines";
+    /**
+     * This points to the paragraphs file which will be used towards indexing
+     */
+    private static final String PARA_FILE = "./data_14/train.test200.cbor.paragraphs";
+
     public static void main(String[] args) throws IOException, CborException {
 
-        final String QREL_FILE = "./data_14/train.test200.cbor.hierarchical.qrels";
-        final String OUTLINE_FILE = "./data_14/train.test200.cbor.outlines";
+
 
         String pathToFile = "./data_14/train.test200.cbor.paragraphs";
         String pathToIndex = "./index";
 
-//        new IndexCreator(pathToFile, pathToIndex).createIndex();
+        /* Create an index and stem the words */
+//        new IndexCreator(pathToFile, pathToIndex, new CustomAnalyzer(MyStopWords.stopWords)).createIndex();
+
         QuerySolver querySolver = new QuerySolver(
                 System.in,
                 "paragraph",
                 pathToIndex,
-                new BinaryQueryBuilder(new StandardAnalyzer(MyStopWords.stopWords), 128),
+//                new BinaryQueryBuilder(new StandardAnalyzer(MyStopWords.stopWords), 128),
+                new BinaryQueryBuilder(new CustomAnalyzer(MyStopWords.stopWords), 128),
 //                new ClassicSimilarity(), // Classic similarity is in fact TF-IDF
-                new BM25Similarity(), // BM25 Similarity
+//                new BM25Similarity(), // BM25 Similarity
+                new LMDirichletSimilarity(),
                 "id"
         );
 
@@ -44,12 +64,21 @@ public class TestClass {
         Map<TRECQuery, Set<String>> groundTruths = ReadQRels.readGroundTruths(QREL_FILE, OUTLINE_FILE);
 
         Evaluator eval = new Evaluator(querySolver, groundTruths);
-        QualityStats qs = eval.evaluate();
+        Pair resPair = eval.evaluate();
+        QualityStats qs = (QualityStats) resPair.getKey();
+        double rPrecAvg = (double) resPair.getValue();
 
         querySolver.terminateSovler();
 
 
-        System.out.println("The big one: " + qs.getPrecisionAt(5));
+        System.out.println(
+                "The big one: " +
+                "\nAverage Precision: " + qs.getAvp() +
+                "\nR-Prec: " + rPrecAvg +
+                "\nMRR: " + qs.getMRR()
+        );
+
+        qs.log("Eval Summary", 2, new PrintWriter(System.out), null);
 
 //        try {
 //
