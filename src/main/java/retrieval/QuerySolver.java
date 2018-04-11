@@ -3,11 +3,13 @@ package retrieval;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopScoreDocCollector;
 import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.store.FSDirectory;
 import query.QueryBuilder;
+import query.expansion.Expander;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -57,6 +59,31 @@ public class QuerySolver {
     private IndexSearcher searcher;
 
     /**
+     * Query expanding strategy
+     */
+    private Expander queryExpander;
+
+    /**
+     * Class constructor
+     *
+     * @param queryStream the source of the query
+     * @param targetField the target field of the query
+     * @param pathToIndex the path to where the index is located
+     * @param queryBuilder the query builder
+     * @param similarity the similarity of the query search
+     * @param queryExpander the query expanding strategy
+     */
+    public QuerySolver(InputStream queryStream, String targetField, String pathToIndex, QueryBuilder queryBuilder, Similarity similarity, Expander queryExpander) {
+        this.scanner = new Scanner(queryStream);
+        this.targetField = targetField;
+        this.pathToIndex = pathToIndex;
+        this.queryBuilder = queryBuilder;
+        this.similarity = similarity;
+        this.idField = "";
+        this.queryExpander = queryExpander;
+    }
+
+    /**
      * Class constructor
      *
      * @param queryStream the source of the query
@@ -90,6 +117,26 @@ public class QuerySolver {
         this.queryBuilder = queryBuilder;
         this.similarity = similarity;
         this.idField = idField;
+    }
+
+    /**
+     * Class constructor
+     *
+     * @param queryStream the source of the query
+     * @param targetField the target field of the query
+     * @param pathToIndex the path to where the index is located
+     * @param queryBuilder the query builder
+     * @param similarity the similarity of the query search
+     * @param queryExpander the query expanding strategy
+     */
+    public QuerySolver(InputStream queryStream, String targetField, String pathToIndex, QueryBuilder queryBuilder, Similarity similarity, String idField, Expander queryExpander) {
+        this.scanner = new Scanner(queryStream);
+        this.targetField = targetField;
+        this.pathToIndex = pathToIndex;
+        this.queryBuilder = queryBuilder;
+        this.similarity = similarity;
+        this.idField = idField;
+        this.queryExpander = queryExpander;
     }
 
     public String getTargetField() {
@@ -134,10 +181,24 @@ public class QuerySolver {
      * @return a list of paragraph ids
      */
     public List<String> answerQuery(String q, int resultNumber) throws IOException {
+        Query query = queryBuilder.buildQuery(targetField, q);
         List<String> res = new ArrayList<>();
         TopScoreDocCollector collector = TopScoreDocCollector.create(resultNumber);
-        searcher.search(queryBuilder.buildQuery(targetField, q), collector);
+        searcher.search(query, collector);
 
+        /* If there is a query expander in place, then expand the query by first gathering some relevant documents */
+        if (queryExpander != null) {
+            List<Document> relevantDocuments = new ArrayList<>();
+
+            for (ScoreDoc scoreDoc : collector.topDocs().scoreDocs)
+                relevantDocuments.add(searcher.doc(scoreDoc.doc));
+
+            query = queryExpander.expand(query, relevantDocuments);
+            collector = TopScoreDocCollector.create(resultNumber);
+            searcher.search(query, collector);
+        }
+
+        /* Perform the true query */
         for (ScoreDoc scoreDoc : collector.topDocs().scoreDocs) {
             Document doc = searcher.doc(scoreDoc.doc);
 

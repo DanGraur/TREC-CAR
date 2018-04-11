@@ -88,14 +88,12 @@ public class Rocchio implements Expander {
         finalQueryTerms.sort(Comparator.comparing(Map.Entry::getValue));
         Collections.reverse(finalQueryTerms);
 
-        String queryString = String.join(
-                                " ",
-                                (CharSequence) finalQueryTerms.subList(0, finalQueryTerms.size() > (termLimit + 1) ? termLimit + 1 : finalQueryTerms.size())
-                                        .stream()
-                                        .map(Map.Entry::getKey)
-        );
+        StringBuilder queryString = new StringBuilder();
 
-        return queryBuilder.buildQuery(targetField, queryString);
+        for (Map.Entry<String, Float> entry : finalQueryTerms.subList(0, finalQueryTerms.size() > (termLimit + 1) ? termLimit + 1 : finalQueryTerms.size()))
+            queryString.append(' ').append(entry.getKey());
+
+        return queryBuilder.buildQuery(targetField, queryString.toString());
     }
 
     /**
@@ -122,9 +120,10 @@ public class Rocchio implements Expander {
         ClassicSimilarity similarity = new ClassicSimilarity();
 
         while (termsEnum.next() != null) {
-            Term term = new Term(targetField, termsEnum.term().toString());
+            Term term = new Term(targetField, termsEnum.term().utf8ToString());
             int docFreq = reader.docFreq(term);
             long termFreq = reader.totalTermFreq(term);
+//            int docFreq = termsEnum.docFreq();
 
             /* Compute the TF-IDF * beta */
             frequencyMap.put(term.text(), beta * termFreq * similarity.idf(docFreq, docNumber));

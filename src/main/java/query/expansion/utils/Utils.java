@@ -35,6 +35,7 @@ public class Utils {
                 Term term = new Term(targetField, termsEnum.term().toString());
                 int docFreq = reader.docFreq(term);
                 long termFreq = reader.totalTermFreq(term);
+//                int docFreq = termsEnum.docFreq();
 
                 /* Compute the TF-IDF * beta */
                 frequencyMap.put(term.text(), termFreq * similarity.idf(docFreq, docNumber));

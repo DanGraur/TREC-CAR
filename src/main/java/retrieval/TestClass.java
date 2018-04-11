@@ -3,9 +3,11 @@ package retrieval;
 import co.nstant.in.cbor.CborException;
 import eval.Evaluator;
 import javafx.util.Pair;
+import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.benchmark.quality.QualityStats;
 import org.apache.lucene.search.similarities.ClassicSimilarity;
 import org.apache.lucene.search.similarities.LMDirichletSimilarity;
+import query.QueryBuilder;
 import query.ReadQRels;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.search.similarities.BM25Similarity;
@@ -13,6 +15,7 @@ import query.BinaryQueryBuilder;
 import query.analyzer.CustomAnalyzer;
 import query.analyzer.MyStopWords;
 import query.TRECQuery;
+import query.expansion.rocchio.Rocchio;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -39,24 +42,27 @@ public class TestClass {
 
     public static void main(String[] args) throws IOException, CborException {
 
-
+        Analyzer analyzer = new CustomAnalyzer(MyStopWords.stopWords);
+        QueryBuilder queryBuilder = new BinaryQueryBuilder(analyzer, 128);
+        String targetField = "paragraph";
 
         String pathToFile = "./data_14/train.test200.cbor.paragraphs";
         String pathToIndex = "./index";
 
         /* Create an index and stem the words */
-//        new IndexCreator(pathToFile, pathToIndex, new CustomAnalyzer(MyStopWords.stopWords)).createIndex();
+//        new IndexCreator(pathToFile, pathToIndex, analyzer.createIndex();
 
         QuerySolver querySolver = new QuerySolver(
                 System.in,
-                "paragraph",
+                targetField,
                 pathToIndex,
 //                new BinaryQueryBuilder(new StandardAnalyzer(MyStopWords.stopWords), 128),
-                new BinaryQueryBuilder(new CustomAnalyzer(MyStopWords.stopWords), 128),
-//                new ClassicSimilarity(), // Classic similarity is in fact TF-IDF
+                queryBuilder,
+                new ClassicSimilarity(), // Classic similarity is in fact TF-IDF with cosine
 //                new BM25Similarity(), // BM25 Similarity
-                new LMDirichletSimilarity(),
-                "id"
+//                new LMDirichletSimilarity(),
+                "id",
+                new Rocchio(1.0f, 0.8f, 128, 10, targetField, analyzer, queryBuilder)
         );
 
         querySolver.initiateSolver();
