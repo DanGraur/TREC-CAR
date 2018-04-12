@@ -15,6 +15,7 @@ import query.BinaryQueryBuilder;
 import query.analyzer.CustomAnalyzer;
 import query.analyzer.MyStopWords;
 import query.TRECQuery;
+import query.expansion.rm.RelevanceBasedLanguageModel;
 import query.expansion.rocchio.Rocchio;
 
 import java.io.IOException;
@@ -58,11 +59,13 @@ public class TestClass {
                 pathToIndex,
 //                new BinaryQueryBuilder(new StandardAnalyzer(MyStopWords.stopWords), 128),
                 queryBuilder,
-                new ClassicSimilarity(), // Classic similarity is in fact TF-IDF with cosine
-//                new BM25Similarity(), // BM25 Similarity
+//                new ClassicSimilarity(), // Classic similarity is in fact TF-IDF with cosine
+                new BM25Similarity(), // BM25 Similarity
 //                new LMDirichletSimilarity(),
                 "id",
-                new Rocchio(1.0f, 0.8f, 128, 10, targetField, analyzer, queryBuilder)
+//                new Rocchio(1f, 0.8f, 10, 5, targetField, analyzer, queryBuilder)
+                new RelevanceBasedLanguageModel(10, 5, targetField, analyzer, queryBuilder, 0.7f, 0.7f)
+
         );
 
         querySolver.initiateSolver();

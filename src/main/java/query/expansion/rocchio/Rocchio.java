@@ -8,11 +8,13 @@ import org.apache.lucene.search.similarities.ClassicSimilarity;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.RAMDirectory;
 import query.QueryBuilder;
+import query.expansion.DocumentWrapper;
 import query.expansion.Expander;
 import query.expansion.utils.Utils;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * This is a modern version of Rocchio which does not make use of the gamma (considering the (ona average) large size of irrelevant documents, this is probably a good idea).
@@ -59,15 +61,15 @@ public class Rocchio implements Expander {
         this.queryBuilder = queryBuilder;
     }
 
-    public Query expand(Query query, List<Document> relevantDocuments) throws IOException {
+    public Query expand(Query query, List<DocumentWrapper> relevantDocuments) throws IOException {
         /* Get the set of words for the query */
         Set<String> queryTerms = new HashSet<>(Arrays.asList(query.toString().split("\\s+")));
 
         /* Lowercase all (this should be lower case by default (due to the lowercase filter), but just to make sure) */
-        queryTerms.stream().map(String::toLowerCase);
+        queryTerms = queryTerms.stream().map(String::toLowerCase).collect(Collectors.toSet());
 
         /* Get the frequency maps */
-        Directory index = generateRelevantIndex(relevantDocuments);
+        Directory index = Utils.generateRelevantIndex(relevantDocuments, analyzer, documentLimit);
         /* This (or part of this) will be the query vector */
         Map<String, Float> allTermFreq = extractTermFrequency(index);
         Map<String, Float> queryTermFreq = Utils.getTFIDF(index, queryTerms, targetField);
@@ -133,29 +135,6 @@ public class Rocchio implements Expander {
         reader.close();
 
         return frequencyMap;
-    }
-
-    /**
-     * Generate a small in-memory index from the set of initial relevant documents for a query
-     *
-     * @param relevantDocuments a list of initially relevant documents for a query
-     * @return the index for this
-     * @throws IOException
-     */
-    private Directory generateRelevantIndex(List<Document> relevantDocuments) throws IOException {
-        /* In-memory */
-        Directory index= new RAMDirectory();
-        IndexWriter indexWriter = new IndexWriter(index, new IndexWriterConfig(analyzer));
-
-        /* Add the docs to the index */
-        for (int i = 0; i < relevantDocuments.size() && i < documentLimit; ++i) {
-            indexWriter.addDocument(relevantDocuments.get(i));
-        }
-
-        /* Store the documents, and finalize the indexing process */
-        indexWriter.close();
-
-        return index;
     }
 
 

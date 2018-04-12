@@ -1,11 +1,15 @@
 package query.expansion.utils;
 
+import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.index.*;
 import org.apache.lucene.search.similarities.ClassicSimilarity;
+import org.apache.lucene.store.RAMDirectory;
+import query.expansion.DocumentWrapper;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -48,4 +52,26 @@ public class Utils {
     }
 
 
+    /**
+     * Generate a small in-memory index from the set of initial relevant documents for a query
+     *
+     * @param relevantDocuments a list of initially relevant documents for a query
+     * @return the index for this
+     * @throws IOException
+     */
+    public static Directory generateRelevantIndex(List<DocumentWrapper> relevantDocuments, Analyzer analyzer, int documentLimit) throws IOException {
+        /* In-memory */
+        Directory index= new RAMDirectory();
+        IndexWriter indexWriter = new IndexWriter(index, new IndexWriterConfig(analyzer));
+
+        /* Add the docs to the index */
+        for (int i = 0; i < relevantDocuments.size() && i < documentLimit; ++i) {
+            indexWriter.addDocument(relevantDocuments.get(i).getDocument());
+        }
+
+        /* Store the documents, and finalize the indexing process */
+        indexWriter.close();
+
+        return index;
+    }
 }

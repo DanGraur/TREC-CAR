@@ -9,6 +9,7 @@ import org.apache.lucene.search.TopScoreDocCollector;
 import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.store.FSDirectory;
 import query.QueryBuilder;
+import query.expansion.DocumentWrapper;
 import query.expansion.Expander;
 
 import java.io.IOException;
@@ -188,10 +189,10 @@ public class QuerySolver {
 
         /* If there is a query expander in place, then expand the query by first gathering some relevant documents */
         if (queryExpander != null) {
-            List<Document> relevantDocuments = new ArrayList<>();
+            List<DocumentWrapper> relevantDocuments = new ArrayList<>();
 
             for (ScoreDoc scoreDoc : collector.topDocs().scoreDocs)
-                relevantDocuments.add(searcher.doc(scoreDoc.doc));
+                relevantDocuments.add(new DocumentWrapper(scoreDoc.doc, searcher.doc(scoreDoc.doc)));
 
             query = queryExpander.expand(query, relevantDocuments);
             collector = TopScoreDocCollector.create(resultNumber);
