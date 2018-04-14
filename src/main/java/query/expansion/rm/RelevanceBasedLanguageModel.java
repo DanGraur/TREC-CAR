@@ -1,16 +1,9 @@
-/**
- * RM3: Complete;
- * Relevance Based Language Model with query mix.
- * References:
- *      1. Relevance Based Language Model - Victor Lavrenko - SIGIR-2001
- *      2. UMass at TREC 2004: Novelty and HARD - Nasreen Abdul-Jaleel - TREC-2004
- */
 package query.expansion.rm;
 
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.document.Document;
 import org.apache.lucene.search.Query;
 import query.QueryBuilder;
-import query.expansion.DocumentWrapper;
 import query.expansion.Expander;
 
 import java.io.IOException;
@@ -29,17 +22,9 @@ public class RelevanceBasedLanguageModel implements Expander {
      */
     private int termLimit;
     /**
-     * Maximal number of documents to be considered in the relevant index
-     */
-    private int documentLimit;
-    /**
      * The target field for the search operation
      */
     private String targetField;
-    /**
-     * The analyzer used for creating the initial query and the indexing itself
-     */
-    private Analyzer analyzer;
     /**
      * The query builder, used to build the Lucene query for the expanded plain query
      */
@@ -52,15 +37,13 @@ public class RelevanceBasedLanguageModel implements Expander {
 
     public RelevanceBasedLanguageModel(int termLimit, int documentLimit, String targetField, Analyzer analyzer, QueryBuilder queryBuilder, float lambda, float mixingLambda) {
         this.termLimit = termLimit;
-        this.documentLimit = documentLimit;
         this.targetField = targetField;
-        this.analyzer = analyzer;
         this.queryBuilder = queryBuilder;
         this.rlm = new RLM(analyzer, documentLimit, termLimit, lambda, mixingLambda, targetField);
     }
 
     @Override
-    public Query expand(Query query, List<DocumentWrapper> relevantDocuments) throws IOException {
+    public Query expand(Query query, List<Document> relevantDocuments) throws IOException {
         /* Compute the P(Q|d) given the current set of relevant documents */
         rlm.setFeedbackStats(relevantDocuments, query.toString().split("\\s+"));
 

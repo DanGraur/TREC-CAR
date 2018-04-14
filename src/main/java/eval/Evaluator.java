@@ -23,10 +23,15 @@ public class Evaluator {
      * A map containing the set of TRECQuery objects (for the IDs and the queries themselves), and the set of relevant paragraph IDs
      */
     private Map<TRECQuery, Set<String>> groundTruths;
+    /**
+     * Specifies whether this evaluator should be verbose
+     */
+    private boolean verbose;
 
-    public Evaluator(QuerySolver solver, Map<TRECQuery, Set<String>> groundTruths) {
+    public Evaluator(QuerySolver solver, Map<TRECQuery, Set<String>> groundTruths, boolean verbose) {
         this.solver = solver;
         this.groundTruths = groundTruths;
+        this.verbose = verbose;
     }
 
     /**
@@ -58,11 +63,21 @@ public class Evaluator {
             /* Precision @ optimalResults.size() is in fact R-Prec */
             int maxGoodRes = optimalResults.size() == 0 ? 1 : (optimalResults.size() > 20 ? 20 : optimalResults.size());
             rPrecAvg += qs.getPrecisionAt(maxGoodRes);
-            System.out.println(qs.getPrecisionAt(maxGoodRes));
+
+            if (verbose)
+                System.out.println("\t>>> Average Precision: " + qs.getAvp() + "\n\t>>> R-Prec: " + qs.getPrecisionAt(maxGoodRes) + "\n\t>>> MRR: " + qs.getMRR() + '\n');
         }
 
         int resSize = individualResults.size();
 
         return new Pair<>(QualityStats.average(individualResults.toArray(new QualityStats[resSize])), rPrecAvg / resSize);
+    }
+
+    public boolean isVerbose() {
+        return verbose;
+    }
+
+    public void setVerbose(boolean verbose) {
+        this.verbose = verbose;
     }
 }

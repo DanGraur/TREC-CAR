@@ -9,7 +9,6 @@ import org.apache.lucene.search.TopScoreDocCollector;
 import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.store.FSDirectory;
 import query.QueryBuilder;
-import query.expansion.DocumentWrapper;
 import query.expansion.Expander;
 
 import java.io.IOException;
@@ -65,60 +64,10 @@ public class QuerySolver {
     private Expander queryExpander;
 
     /**
-     * Class constructor
-     *
-     * @param queryStream the source of the query
-     * @param targetField the target field of the query
-     * @param pathToIndex the path to where the index is located
-     * @param queryBuilder the query builder
-     * @param similarity the similarity of the query search
-     * @param queryExpander the query expanding strategy
-     */
-    public QuerySolver(InputStream queryStream, String targetField, String pathToIndex, QueryBuilder queryBuilder, Similarity similarity, Expander queryExpander) {
-        this.scanner = new Scanner(queryStream);
-        this.targetField = targetField;
-        this.pathToIndex = pathToIndex;
-        this.queryBuilder = queryBuilder;
-        this.similarity = similarity;
-        this.idField = "";
-        this.queryExpander = queryExpander;
-    }
+     * Specifies if it should be verbose or not
 
-    /**
-     * Class constructor
-     *
-     * @param queryStream the source of the query
-     * @param targetField the target field of the query
-     * @param pathToIndex the path to where the index is located
-     * @param queryBuilder the query builder
-     * @param similarity the similarity of the query search
      */
-    public QuerySolver(InputStream queryStream, String targetField, String pathToIndex, QueryBuilder queryBuilder, Similarity similarity) {
-        this.scanner = new Scanner(queryStream);
-        this.targetField = targetField;
-        this.pathToIndex = pathToIndex;
-        this.queryBuilder = queryBuilder;
-        this.similarity = similarity;
-        this.idField = "";
-    }
-
-    /**
-     * Class constructor
-     *
-     * @param queryStream the source of the query
-     * @param targetField the target field of the query
-     * @param pathToIndex the path to where the index is located
-     * @param queryBuilder the query builder
-     * @param similarity the similarity of the query search
-     */
-    public QuerySolver(InputStream queryStream, String targetField, String pathToIndex, QueryBuilder queryBuilder, Similarity similarity, String idField) {
-        this.scanner = new Scanner(queryStream);
-        this.targetField = targetField;
-        this.pathToIndex = pathToIndex;
-        this.queryBuilder = queryBuilder;
-        this.similarity = similarity;
-        this.idField = idField;
-    }
+    private boolean verbose;
 
     /**
      * Class constructor
@@ -130,7 +79,90 @@ public class QuerySolver {
      * @param similarity the similarity of the query search
      * @param queryExpander the query expanding strategy
      */
-    public QuerySolver(InputStream queryStream, String targetField, String pathToIndex, QueryBuilder queryBuilder, Similarity similarity, String idField, Expander queryExpander) {
+    public QuerySolver(InputStream queryStream,
+                       String targetField,
+                       String pathToIndex,
+                       QueryBuilder queryBuilder,
+                       Similarity similarity,
+                       Expander queryExpander,
+                       boolean verbose) {
+        this.scanner = new Scanner(queryStream);
+        this.targetField = targetField;
+        this.pathToIndex = pathToIndex;
+        this.queryBuilder = queryBuilder;
+        this.similarity = similarity;
+        this.idField = "";
+        this.queryExpander = queryExpander;
+        this.verbose = verbose;
+    }
+
+    /**
+     * Class constructor
+     *
+     * @param queryStream the source of the query
+     * @param targetField the target field of the query
+     * @param pathToIndex the path to where the index is located
+     * @param queryBuilder the query builder
+     * @param similarity the similarity of the query search
+     */
+    public QuerySolver(InputStream queryStream,
+                       String targetField,
+                       String pathToIndex,
+                       QueryBuilder queryBuilder,
+                       Similarity similarity,
+                       boolean verbose) {
+        this.scanner = new Scanner(queryStream);
+        this.targetField = targetField;
+        this.pathToIndex = pathToIndex;
+        this.queryBuilder = queryBuilder;
+        this.similarity = similarity;
+        this.idField = "";
+        this.verbose = verbose;
+    }
+
+    /**
+     * Class constructor
+     *
+     * @param queryStream the source of the query
+     * @param targetField the target field of the query
+     * @param pathToIndex the path to where the index is located
+     * @param queryBuilder the query builder
+     * @param similarity the similarity of the query search
+     */
+    public QuerySolver(InputStream queryStream,
+                       String targetField,
+                       String pathToIndex,
+                       QueryBuilder queryBuilder,
+                       Similarity similarity,
+                       String idField,
+                       boolean verbose) {
+        this.scanner = new Scanner(queryStream);
+        this.targetField = targetField;
+        this.pathToIndex = pathToIndex;
+        this.queryBuilder = queryBuilder;
+        this.similarity = similarity;
+        this.idField = idField;
+        this.verbose = verbose;
+    }
+
+    /**
+     * Class constructor
+     *
+     * @param queryStream the source of the query
+     * @param targetField the target field of the query
+     * @param pathToIndex the path to where the index is located
+     * @param queryBuilder the query builder
+     * @param similarity the similarity of the query search
+     * @param queryExpander the query expanding strategy
+     */
+    public QuerySolver(InputStream queryStream,
+                       String targetField,
+                       String pathToIndex,
+                       QueryBuilder queryBuilder,
+                       Similarity similarity,
+                       String idField,
+                       Expander queryExpander,
+                       boolean verbose) {
         this.scanner = new Scanner(queryStream);
         this.targetField = targetField;
         this.pathToIndex = pathToIndex;
@@ -138,10 +170,15 @@ public class QuerySolver {
         this.similarity = similarity;
         this.idField = idField;
         this.queryExpander = queryExpander;
+        this.verbose = verbose;
     }
 
     public String getTargetField() {
         return targetField;
+    }
+
+    public void setTargetField(String targetField) {
+        this.targetField = targetField;
     }
 
     public String getPathToIndex() {
@@ -156,8 +193,12 @@ public class QuerySolver {
         this.idField = idField;
     }
 
-    public void setTargetField(String targetField) {
-        this.targetField = targetField;
+    public boolean isVerbose() {
+        return verbose;
+    }
+
+    public void setVerbose(boolean verbose) {
+        this.verbose = verbose;
     }
 
     /**
@@ -187,12 +228,17 @@ public class QuerySolver {
         TopScoreDocCollector collector = TopScoreDocCollector.create(resultNumber);
         searcher.search(query, collector);
 
+        if (verbose)
+            System.out.println("> The Raw Query: " + q);
+
         /* If there is a query expander in place, then expand the query by first gathering some relevant documents */
         if (queryExpander != null) {
-            List<DocumentWrapper> relevantDocuments = new ArrayList<>();
+            List<Document> relevantDocuments = new ArrayList<>();
 
-            for (ScoreDoc scoreDoc : collector.topDocs().scoreDocs)
-                relevantDocuments.add(new DocumentWrapper(scoreDoc.doc, searcher.doc(scoreDoc.doc)));
+            for (ScoreDoc scoreDoc : collector.topDocs().scoreDocs) {
+                relevantDocuments.add(searcher.doc(scoreDoc.doc));
+//                System.out.println(searcher.getIndexReader().getTermVector(scoreDoc.doc, targetField));
+            }
 
             query = queryExpander.expand(query, relevantDocuments);
             collector = TopScoreDocCollector.create(resultNumber);
@@ -204,11 +250,14 @@ public class QuerySolver {
             Document doc = searcher.doc(scoreDoc.doc);
 
             if (!idField.isEmpty()) {
-                System.out.println("The id: " + doc.getField(idField).stringValue());
+                if (verbose)
+                    System.out.println("\t>> Paragraph ID: " + doc.getField(idField).stringValue());
+
                 res.add(doc.getField(idField).stringValue());
             }
 
-            System.out.println("The score: " + scoreDoc.score + "\n" + doc.getField(targetField).stringValue());
+            if (verbose)
+                System.out.println("\t>> Raw Paragraph: " + doc.getField(targetField).stringValue() + "\n\t>> Match Score: " + scoreDoc.score + '\n');
         }
 
         return res;

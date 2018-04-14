@@ -7,12 +7,11 @@ import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
+import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.FSDirectory;
-import org.jetbrains.annotations.Nullable;
-import org.tartarus.snowball.SnowballProgram;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -93,7 +92,15 @@ public class IndexCreator {
             Document doc = new Document();
 
             /* Index the paragraph field and the id of the paragraph (we'll need the latter later for checking against the ground truth) */
-            doc.add(new TextField("paragraph", p.getTextOnly(), Field.Store.YES));
+            /* Create a custom field which will store the term vectors (should be useful for the RMs) */
+            FieldType termVectorCustomFType = new FieldType(TextField.TYPE_STORED);
+            termVectorCustomFType.setStoreTermVectors(true);
+            termVectorCustomFType.setStored(true);
+            Field paraField = new Field("paragraph", p.getTextOnly(), termVectorCustomFType);
+
+            /* Add the field(s): paragraph, and id */
+            doc.add(paraField);
+//            doc.add(new TextField("paragraph", p.getTextOnly(), Field.Store.YES));
             doc.add(new TextField("id", p.getParaId(), Field.Store.YES));
 
             indexer.addDocument(doc);

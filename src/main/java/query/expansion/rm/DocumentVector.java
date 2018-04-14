@@ -1,14 +1,11 @@
 package query.expansion.rm;
 
+import org.apache.lucene.index.*;
+import org.apache.lucene.util.BytesRef;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-
-import org.apache.lucene.index.*;
-import org.apache.lucene.store.Directory;
-import org.apache.lucene.util.BytesRef;
-
-import static query.expansion.rm.CommonVariables.FIELD_BOW;
 
 /**
  *
@@ -96,11 +93,7 @@ public class DocumentVector {
         return dv;
     }
 
-    public static DocumentVector getDocumentVector(int luceneDocId, Directory directory, String targetField) throws IOException {
-
-        /* Open an index reader based on the passed directory object */
-        IndexReader indexReader = DirectoryReader.open(directory);
-
+    public static DocumentVector getDocumentVector(int luceneDocId, IndexReader indexReader, String targetField) throws IOException {
         DocumentVector dv = new DocumentVector();
         int docSize = 0;
 
@@ -109,14 +102,20 @@ public class DocumentVector {
             System.exit(1);
         }
 
-        Terms terms = indexReader.getTermVector(luceneDocId, targetField);
+//        Terms terms = indexReader.getTermVector(luceneDocId, targetField);
+
+        Fields fields = indexReader.getTermVectors(luceneDocId);
+        Terms terms = fields.terms(targetField);
+
+//        System.out.println("ASD: " + terms);
+
         if(null == terms) {
             System.err.println("Error getDocumentVector(): Term vectors not indexed: "+luceneDocId);
             return null;
         }
 
         TermsEnum iterator = terms.iterator();
-        BytesRef byteRef = null;
+        BytesRef byteRef;
 
         //* for each word in the document
         while((byteRef = iterator.next()) != null) {
@@ -131,11 +130,7 @@ public class DocumentVector {
             dv.docPerTermStat.put(term, new PerTermStat(term, termFreq, 1, getIdf(term, indexReader, targetField), getCollectionProbability(term, indexReader, targetField)));
         }
         dv.size = docSize;
-        //System.out.println("DocSize: "+docSize);
-
-
-        /* Close the index reader */
-        indexReader.close();
+        //System.out.println("DocSize: " + docSize);
 
         return dv;
     }

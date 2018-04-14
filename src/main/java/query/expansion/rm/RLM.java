@@ -1,10 +1,14 @@
 package query.expansion.rm;
 
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.index.*;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.index.Fields;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.MultiFields;
+import org.apache.lucene.index.Terms;
+import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.store.Directory;
-import query.expansion.DocumentWrapper;
 import query.expansion.utils.Utils;
 
 import java.io.IOException;
@@ -84,24 +88,30 @@ public class RLM {
      * @param analyzedQuery the tokenized query itself
      * @throws IOException
      */
-    public void setFeedbackStats(List<DocumentWrapper> hits, String[] analyzedQuery) throws IOException {
+    public void setFeedbackStats(List<Document> hits, String[] analyzedQuery) throws IOException {
         /* Clear/Initiate the DS we'll be using in the algorithm */
         feedbackDocumentVectors = new HashMap<>();
         feedbackTermStats = new HashMap<>();
         hash_P_Q_Given_D = new HashMap<>();
 
         /* Get an index reader, given the current hit list */
-        Directory directory = Utils.generateRelevantIndex(hits, analyzer, numFeedbackDocs);
+        Directory directory = Utils.generateRelevantDirectory(hits, analyzer, numFeedbackDocs);
+
+        /* Create the Index */
+        IndexSearcher indexSearcher = Utils.createIndexSearcher(directory);
 
         /* Compute the vocabulary size */
-        getVocabularySize(directory);
+        getVocabularySize(indexSearcher.getIndexReader());
 
-        for (int i = 0; i < Math.min(numFeedbackDocs, hits.size()); i++) {
-            /* Get the ID of the relevant document */
-            int luceneDocId = hits.get(i).getDocumentId();
+//        System.out.println("The vocabulary size is: " + vocabularySize);
+
+        /* Get the document ids */
+        List<Integer> docIds = Utils.getDocumentIds(indexSearcher, numFeedbackDocs);
+
+        for (Integer luceneDocId : docIds) {
 
             /* Get the document vector */
-            DocumentVector docV = DocumentVector.getDocumentVector(luceneDocId, directory, targetField);
+            DocumentVector docV = DocumentVector.getDocumentVector(luceneDocId, indexSearcher.getIndexReader(), targetField);
 
             /* Defensive check - see if the document vector has indeed been created */
             if(docV == null)
@@ -275,9 +285,12 @@ public class RLM {
         /* By running RM1 we'll have the word -> probability | R in hashmap_PwGivenR */
         RM1();
 
+        /*  */
+        int maxSize = list_PwGivenR.size() > numFeedbackDocs + 1 ? numFeedbackDocs + 1 : list_PwGivenR.size();
+
         /* Only consider a subset of the extracted term set */
         List<String> reducedProbabilities = new ArrayList<>(list_PwGivenR)
-                .subList(0, numFeedbackTerms + 1)
+                .subList(0, maxSize)
                 .stream()
                 .map((WordProbability probability) -> probability.w)
                 .collect(Collectors.toList());
@@ -327,20 +340,19 @@ public class RLM {
     }
 
     /**
-     * Returns the vocabulary size of the collection for 'fieldToSearch'.
+     * Get the total number of unique terms in the index
+     *
+     * @param indexReader the index from which information will be extracted
      * @return vocabularySize Total number of terms in the vocabulary
      * @throws IOException IOException
      */
-    private long getVocabularySize(Directory directory) throws IOException {
-        IndexReader reader = DirectoryReader.open(directory);
-        Fields fields = MultiFields.getFields(reader);
+    private long getVocabularySize(IndexReader indexReader) throws IOException {
+        Fields fields = MultiFields.getFields(indexReader);
         Terms terms = fields.terms(targetField);
 
         vocabularySize = terms.getSumTotalTermFreq();
 
-        reader.close();
-
-        return vocabularySize;  // total number of terms in the index in that field
+        return vocabularySize;
     }
 
 //    /**

@@ -6,9 +6,7 @@ import org.apache.lucene.index.*;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.similarities.ClassicSimilarity;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.RAMDirectory;
 import query.QueryBuilder;
-import query.expansion.DocumentWrapper;
 import query.expansion.Expander;
 import query.expansion.utils.Utils;
 
@@ -61,7 +59,7 @@ public class Rocchio implements Expander {
         this.queryBuilder = queryBuilder;
     }
 
-    public Query expand(Query query, List<DocumentWrapper> relevantDocuments) throws IOException {
+    public Query expand(Query query, List<Document> relevantDocuments) throws IOException {
         /* Get the set of words for the query */
         Set<String> queryTerms = new HashSet<>(Arrays.asList(query.toString().split("\\s+")));
 
@@ -69,7 +67,7 @@ public class Rocchio implements Expander {
         queryTerms = queryTerms.stream().map(String::toLowerCase).collect(Collectors.toSet());
 
         /* Get the frequency maps */
-        Directory index = Utils.generateRelevantIndex(relevantDocuments, analyzer, documentLimit);
+        Directory index = Utils.generateRelevantDirectory(relevantDocuments, analyzer, documentLimit);
         /* This (or part of this) will be the query vector */
         Map<String, Float> allTermFreq = extractTermFrequency(index);
         Map<String, Float> queryTermFreq = Utils.getTFIDF(index, queryTerms, targetField);
@@ -118,7 +116,7 @@ public class Rocchio implements Expander {
         /* Get the number of documents */
         int docNumber = reader.numDocs();
 
-        /* Declare the similarity */
+        /* Declare the similarity which will allow us to compute the IDF */
         ClassicSimilarity similarity = new ClassicSimilarity();
 
         while (termsEnum.next() != null) {
@@ -136,7 +134,5 @@ public class Rocchio implements Expander {
 
         return frequencyMap;
     }
-
-
 
 }
