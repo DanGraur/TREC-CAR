@@ -43,7 +43,7 @@ public class TestClass {
     /**
      * Verbose output
      */
-    private static final boolean VERBOSE = true;
+    private static final boolean VERBOSE = false;
     /**
      * The default target search field
      */
@@ -72,6 +72,7 @@ public class TestClass {
                 new BM25Similarity(), // BM25 Similarity
 //                new LMDirichletSimilarity(), // Dirichlet Similarity
                 ID_FIELD,
+//                null,
                 new Rocchio(1f, 0.8f, 10, 5, TARGET_FIELD, analyzer, queryBuilder),
 //                new RelevanceBasedLanguageModel(10, 5, TARGET_FIELD, analyzer, queryBuilder, 0.7f, 0.7f),
                 VERBOSE

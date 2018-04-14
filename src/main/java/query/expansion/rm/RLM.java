@@ -7,7 +7,6 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.MultiFields;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Query;
 import org.apache.lucene.store.Directory;
 import query.expansion.utils.Utils;
 
@@ -281,7 +280,7 @@ public class RLM {
     }
 
 
-    public Map<String, WordProbability> RM3(Query query) {
+    public Map<String, WordProbability> RM3(String[] analyzedQuery) {
         /* By running RM1 we'll have the word -> probability | R in hashmap_PwGivenR */
         RM1();
 
@@ -306,9 +305,6 @@ public class RLM {
         /* Normalize the probabilities */
         for (Map.Entry<String, WordProbability> entry : hashmap_PwGivenR.entrySet())
             entry.getValue().p_w_given_R /= normalizationFactor;
-
-        /* TODO: See if it's possible to send the query directly tokenized; also try more advanced processing mechanisms here */
-        String[] analyzedQuery = query.toString().split("\\s+"); //query.queryFieldAnalyze(analyzer, query.qtitle).split("\\s+");
 
         normalizationFactor = 0;
         /* Multiply each word probability with the lambda factor */

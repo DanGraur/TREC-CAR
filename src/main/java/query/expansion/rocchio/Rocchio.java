@@ -12,7 +12,6 @@ import query.expansion.utils.Utils;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * This is a modern version of Rocchio which does not make use of the gamma (considering the (ona average) large size of irrelevant documents, this is probably a good idea).
@@ -59,18 +58,23 @@ public class Rocchio implements Expander {
         this.queryBuilder = queryBuilder;
     }
 
-    public Query expand(Query query, List<Document> relevantDocuments) throws IOException {
+    public Query expand(String[] query, List<Document> relevantDocuments) throws IOException {
         /* Get the set of words for the query */
-        Set<String> queryTerms = new HashSet<>(Arrays.asList(query.toString().split("\\s+")));
-
-        /* Lowercase all (this should be lower case by default (due to the lowercase filter), but just to make sure) */
-        queryTerms = queryTerms.stream().map(String::toLowerCase).collect(Collectors.toSet());
+        Set<String> queryTerms = new HashSet<>(Arrays.asList(query));
 
         /* Get the frequency maps */
         Directory index = Utils.generateRelevantDirectory(relevantDocuments, analyzer, documentLimit);
+
         /* This (or part of this) will be the query vector */
         Map<String, Float> allTermFreq = extractTermFrequency(index);
         Map<String, Float> queryTermFreq = Utils.getTFIDF(index, queryTerms, targetField);
+
+//        System.out.println("Size of the query term freq map: " + queryTermFreq.size());
+
+//        for (Map.Entry<String, Float> s : queryTermFreq.entrySet())
+//            System.out.println(s);
+//
+//        System.exit(1);
 
         for (Map.Entry<String, Float> term : queryTermFreq.entrySet()) {
             /* Multiply the current entry with alpha */

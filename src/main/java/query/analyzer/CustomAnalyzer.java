@@ -9,6 +9,7 @@ import org.apache.lucene.analysis.standard.StandardTokenizer;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -53,6 +54,7 @@ public class CustomAnalyzer extends StopwordAnalyzerBase {
 
         /* This is my addition: remove numbers and apply stemming */
         tok = new PatternReplaceFilter(tok, Pattern.compile("[0-9]+"), "", true);
+        tok = new StopFilter(tok, new CharArraySet(Collections.singletonList(""), true));
         tok = new PorterStemFilter(tok);
         return new TokenStreamComponents(src, tok) {
             protected void setReader(Reader reader) {

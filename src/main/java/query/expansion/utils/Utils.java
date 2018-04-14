@@ -35,13 +35,12 @@ public class Utils {
         ClassicSimilarity similarity = new ClassicSimilarity();
 
         while (termsEnum.next() != null)
-            if (tokens.contains(termsEnum.term().toString().toLowerCase())) {
-                Term term = new Term(targetField, termsEnum.term().toString());
+            if (tokens.contains(termsEnum.term().utf8ToString())) {
+                Term term = new Term(targetField, termsEnum.term().utf8ToString());
                 int docFreq = reader.docFreq(term);
                 long termFreq = reader.totalTermFreq(term);
-//                int docFreq = termsEnum.docFreq();
 
-                /* Compute the TF-IDF * beta */
+                /* Compute the TF-IDF */
                 frequencyMap.put(term.text(), termFreq * similarity.idf(docFreq, docNumber));
             }
 

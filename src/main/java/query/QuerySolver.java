@@ -227,6 +227,8 @@ public class QuerySolver {
         TopScoreDocCollector collector = TopScoreDocCollector.create(resultNumber);
         searcher.search(query, collector);
 
+//        System.out.println(">>>>>? " + query.toString());
+
         if (verbose)
             System.out.println("> The Raw Query: " + q);
 
@@ -239,7 +241,8 @@ public class QuerySolver {
 //                System.out.println(searcher.getIndexReader().getTermVector(scoreDoc.doc, targetField));
             }
 
-            query = queryExpander.expand(query, relevantDocuments);
+            /* Send the query for expansion; first make sure to unparse it, as to remove Lucene specific additions */
+            query = queryExpander.expand(unParseQuery(query), relevantDocuments);
             collector = TopScoreDocCollector.create(resultNumber);
             searcher.search(query, collector);
         }
@@ -308,5 +311,25 @@ public class QuerySolver {
 
     private IndexSearcher createSearcher() throws IOException {
         return new IndexSearcher(DirectoryReader.open(FSDirectory.open(FileSystems.getDefault().getPath(pathToIndex))));
+    }
+
+    /**
+     * Get the analyzed tokens of the analyzed query (i.e. transform something like paragraph:<term> into <term>)
+     *
+     * @param query the query to be reparsed
+     * @return the query's (already analyzed) tokens
+     */
+    private String[] unParseQuery(Query query) {
+        /* Let's formulate it nicely using streaming and 'functional' programming */
+        return Arrays
+                .stream(query.toString().split("\\s+"))
+                .map((String bigToken) -> {
+                    String[] tokens = bigToken.split(":");
+                    if (tokens.length > 1)
+                        return tokens[1];
+                    return "";
+                })
+                .filter((String element) -> !element.equals(""))
+                .toArray(String[]::new);
     }
 }

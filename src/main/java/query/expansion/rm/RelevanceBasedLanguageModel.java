@@ -43,9 +43,9 @@ public class RelevanceBasedLanguageModel implements Expander {
     }
 
     @Override
-    public Query expand(Query query, List<Document> relevantDocuments) throws IOException {
+    public Query expand(String[] query, List<Document> relevantDocuments) throws IOException {
         /* Compute the P(Q|d) given the current set of relevant documents */
-        rlm.setFeedbackStats(relevantDocuments, query.toString().split("\\s+"));
+        rlm.setFeedbackStats(relevantDocuments, query);
 
         List<Map.Entry<String, WordProbability>> termMap = new ArrayList<>(rlm.RM3(query).entrySet()); //rlm.RM1();
 

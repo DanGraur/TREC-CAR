@@ -14,9 +14,9 @@ public interface Expander {
     /**
      * Expand the query
      *
-     * @param query the query to be expanded
+     * @param query the set of tokens of the array to be expanded
      * @param relevantDocuments the set of relevant documents, for the initial query
      * @return a new query, which expands on the initial query based on its relevant documents
      */
-    Query expand(Query query, List<Document> relevantDocuments) throws IOException;
+    Query expand(String[] query, List<Document> relevantDocuments) throws IOException;
 }
