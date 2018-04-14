@@ -2,8 +2,8 @@ package eval;
 
 import javafx.util.Pair;
 import org.apache.lucene.benchmark.quality.QualityStats;
+import query.QuerySolver;
 import query.TRECQuery;
-import retrieval.QuerySolver;
 
 import java.io.IOException;
 import java.util.ArrayList;

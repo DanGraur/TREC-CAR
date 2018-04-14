@@ -1,7 +1,6 @@
-package retrieval;
+package test;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.lucene.analysis.en.PorterStemFilter;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;

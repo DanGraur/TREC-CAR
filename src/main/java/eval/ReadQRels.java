@@ -1,7 +1,8 @@
-package query;
+package eval;
 
 import edu.unh.cs.treccar.Data;
 import edu.unh.cs.treccar.read_data.DeserializeData;
+import query.TRECQuery;
 
 import java.io.*;
 import java.util.*;

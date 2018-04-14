@@ -1,4 +1,4 @@
-package retrieval;
+package query;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
@@ -8,7 +8,6 @@ import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopScoreDocCollector;
 import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.store.FSDirectory;
-import query.QueryBuilder;
 import query.expansion.Expander;
 
 import java.io.IOException;
