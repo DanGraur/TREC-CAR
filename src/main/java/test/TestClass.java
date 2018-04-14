@@ -5,14 +5,14 @@ import eval.ReadQRels;
 import javafx.util.Pair;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.benchmark.quality.QualityStats;
-import org.apache.lucene.search.similarities.BM25Similarity;
+import org.apache.lucene.search.similarities.ClassicSimilarity;
 import query.BinaryQueryBuilder;
 import query.QueryBuilder;
 import query.QuerySolver;
 import query.TRECQuery;
 import query.analyzer.CustomAnalyzer;
 import query.analyzer.MyStopWords;
-import query.expansion.rocchio.Rocchio;
+import query.expansion.rm.RelevanceBasedLanguageModel;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -68,13 +68,13 @@ public class TestClass {
                 PATH_TO_INDEX,
 //                new BinaryQueryBuilder(new StandardAnalyzer(MyStopWords.stopWords), 128),
                 queryBuilder,
-//                new ClassicSimilarity(), // Classic similarity is in fact TF-IDF with cosine
-                new BM25Similarity(), // BM25 Similarity
+                new ClassicSimilarity(), // Classic similarity is in fact TF-IDF with cosine
+//                new BM25Similarity(), // BM25 Similarity
 //                new LMDirichletSimilarity(), // Dirichlet Similarity
                 ID_FIELD,
 //                null,
-                new Rocchio(1f, 0.8f, 10, 5, TARGET_FIELD, analyzer, queryBuilder),
-//                new RelevanceBasedLanguageModel(10, 5, TARGET_FIELD, analyzer, queryBuilder, 0.7f, 0.7f),
+//                new Rocchio(1f, 0.0f, 10, 5, TARGET_FIELD, analyzer, queryBuilder),
+                new RelevanceBasedLanguageModel(10, 5, TARGET_FIELD, analyzer, queryBuilder, 0.7f, 0.7f),
                 VERBOSE
 
         );

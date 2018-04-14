@@ -15,8 +15,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- *
- * @author dwaipayan
+ * @author Dan Graur 4/9/2018
  */
 public class RLM {
     /**
@@ -184,14 +183,6 @@ public class RLM {
 
         return smoothedMLEofTerm;
     }
-//
-//    public float getCollectionProbability(String term, IndexReader reader, String fieldName) throws IOException {
-//
-//        Term termInstance = new Term(fieldName, term);
-//        long termFreq = reader.totalTermFreq(termInstance); // CF: Returns the total number of occurrences of term across all documents (the sum of the freq() for each doc that has this term).
-//
-//        return (float) termFreq / (float) vocabularySize;
-//    }
 
     /**
      * mixingLambda*tf(t,d)/d-size + (1-mixingLambda)*cf(t)/col-size

@@ -80,11 +80,11 @@ public class Rocchio implements Expander {
             /* Multiply the current entry with alpha */
             float modifiedFreq = term.getValue() * alpha;
 
-            /* Check if the entry exists in the allTermFreq; if it does extract the beta multiplied TF-IDF */
+            /* Check if the entry exists in the allTermFreq; if it does extract the beta * TF-IDF */
             if (allTermFreq.containsKey(term.getKey()))
                 modifiedFreq += allTermFreq.get(term.getKey());
 
-            /* Update or introduce the term in the  */
+            /* Update or introduce the term in the map */
             allTermFreq.put(term.getKey(), modifiedFreq);
         }
 
@@ -95,7 +95,15 @@ public class Rocchio implements Expander {
         StringBuilder queryString = new StringBuilder();
 
         for (Map.Entry<String, Float> entry : finalQueryTerms.subList(0, finalQueryTerms.size() > (termLimit + 1) ? termLimit + 1 : finalQueryTerms.size()))
-            queryString.append(' ').append(entry.getKey());
+            queryString.append(entry.getKey()).append(' ');
+
+//        System.out.println("The original query: " + String.join(" ", queryTerms));
+//        System.out.println("The expanded query: " + queryString + "\n");
+
+//        for (Map.Entry<String, Float> entry : finalQueryTerms) {
+//            System.out.println(entry);
+//        }
+
 
         return queryBuilder.buildQuery(targetField, queryString.toString());
     }
@@ -132,6 +140,10 @@ public class Rocchio implements Expander {
             /* Compute the TF-IDF * beta */
             frequencyMap.put(term.text(), beta * termFreq * similarity.idf(docFreq, docNumber));
         }
+
+//        for (Map.Entry<String, Float> entry : frequencyMap.entrySet()) {
+//            System.out.println(entry);
+//        }
 
         /* Close the reader */
         reader.close();

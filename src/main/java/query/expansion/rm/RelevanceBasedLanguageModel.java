@@ -12,8 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- *
- * @author dwaipayan
+ * @author Dan Graur 4/9/2018
  */
 
 public class RelevanceBasedLanguageModel implements Expander {
@@ -47,7 +46,7 @@ public class RelevanceBasedLanguageModel implements Expander {
         /* Compute the P(Q|d) given the current set of relevant documents */
         rlm.setFeedbackStats(relevantDocuments, query);
 
-        List<Map.Entry<String, WordProbability>> termMap = new ArrayList<>(rlm.RM3(query).entrySet()); //rlm.RM1();
+        List<Map.Entry<String, WordProbability>> termMap = new ArrayList<>(rlm.RM1().entrySet()); //new ArrayList<>(rlm.RM3(query).entrySet());
 
         termMap.sort(
                 (Map.Entry<String, WordProbability> entry1, Map.Entry<String, WordProbability> entry2) ->

@@ -8,8 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- *
- * @author dwaipayan
+ * @author Dan Graur 4/9/2018
  */
 public class DocumentVector {
 
@@ -188,19 +187,5 @@ public class DocumentVector {
             System.out.println(key + " : " + value.getCF());
         }
         return true;
-    }
-
-    /** 
-     * Returns the TF of 'term' in 'dv'.
-     * @param term The term
-     * @param dv Document vector
-     * @return Returns the TF of 'term' in 'dv'
-     */
-    public long getTf(String term, DocumentVector dv) {
-        PerTermStat t = dv.docPerTermStat.get(term);
-        if(null != t)
-            return t.getCF();
-        else
-            return 0;
     }
 }
