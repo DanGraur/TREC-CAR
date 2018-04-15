@@ -2,6 +2,7 @@ package query.analyzer;
 
 import org.apache.lucene.analysis.*;
 import org.apache.lucene.analysis.en.PorterStemFilter;
+import org.apache.lucene.analysis.miscellaneous.ASCIIFoldingFilter;
 import org.apache.lucene.analysis.pattern.PatternReplaceFilter;
 import org.apache.lucene.analysis.standard.StandardFilter;
 import org.apache.lucene.analysis.standard.StandardTokenizer;
@@ -49,12 +50,16 @@ public class CustomAnalyzer extends StopwordAnalyzerBase {
         final StandardTokenizer src = new StandardTokenizer();
         src.setMaxTokenLength(this.maxTokenLength);
         TokenStream tok = new StandardFilter(src);
+        /* Turn to lowercase characters */
         tok = new LowerCaseFilter(tok);
+        /* Convert non-english characters to their english equivalent */
+        tok = new ASCIIFoldingFilter(tok);
+        /* Remove the stop-words */
         tok = new StopFilter(tok, this.stopwords);
-
         /* This is my addition: remove numbers and apply stemming */
         tok = new PatternReplaceFilter(tok, Pattern.compile("[0-9]+"), "", true);
         tok = new StopFilter(tok, new CharArraySet(Collections.singletonList(""), true));
+        /* Porter English Stemming */
         tok = new PorterStemFilter(tok);
         return new TokenStreamComponents(src, tok) {
             protected void setReader(Reader reader) {

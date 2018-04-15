@@ -16,6 +16,10 @@ import java.util.Map;
  */
 
 public class RelevanceBasedLanguageModel implements Expander {
+    public enum RMType {
+        RM1, RM3
+    }
+
     /**
      * Maximal number of terms of the new expanded query
      */
@@ -34,11 +38,24 @@ public class RelevanceBasedLanguageModel implements Expander {
      */
     private RLM rlm;
 
-    public RelevanceBasedLanguageModel(int termLimit, int documentLimit, String targetField, Analyzer analyzer, QueryBuilder queryBuilder, float lambda, float mixingLambda) {
+    /**
+     * Defines the extension algorithm to use
+     */
+    private RMType rmType;
+
+    public RelevanceBasedLanguageModel(int termLimit,
+                                       int documentLimit,
+                                       String targetField,
+                                       Analyzer analyzer,
+                                       QueryBuilder queryBuilder,
+                                       float lambda,
+                                       float mixingLambda,
+                                       RMType rmType) {
         this.termLimit = termLimit;
         this.targetField = targetField;
         this.queryBuilder = queryBuilder;
         this.rlm = new RLM(analyzer, documentLimit, termLimit, lambda, mixingLambda, targetField);
+        this.rmType = rmType;
     }
 
     @Override
@@ -46,19 +63,33 @@ public class RelevanceBasedLanguageModel implements Expander {
         /* Compute the P(Q|d) given the current set of relevant documents */
         rlm.setFeedbackStats(relevantDocuments, query);
 
-        List<Map.Entry<String, WordProbability>> termMap = new ArrayList<>(rlm.RM1().entrySet()); //new ArrayList<>(rlm.RM3(query).entrySet());
+        List<Map.Entry<String, WordProbability>> termMap;
 
+        /* Choose which of the Relevance Model will be used for expansion */
+        if (rmType == RMType.RM1)
+            termMap = new ArrayList<>(rlm.RM1().entrySet());
+        else
+            termMap = new ArrayList<>(rlm.RM3(query).entrySet());
+
+        /* Sort in descending order */
         termMap.sort(
                 (Map.Entry<String, WordProbability> entry1, Map.Entry<String, WordProbability> entry2) ->
                         Float.compare(
-                                entry1.getValue().p_w_given_R, entry2.getValue().p_w_given_R
+                                entry2.getValue().p_w_given_R, entry1.getValue().p_w_given_R
                         )
         );
 
+        for (Map.Entry<String, WordProbability> entry : termMap) {
+            System.out.println(entry.getKey() + " " + entry.getValue().p_w_given_R);
+        }
+
+        System.out.println("\n");
+
+        /* Build the query */
         StringBuilder queryString = new StringBuilder();
 
         for (Map.Entry<String, WordProbability> entry : termMap.subList(0, termMap.size() > (termLimit + 1) ? termLimit + 1 : termMap.size()))
-            queryString.append(' ').append(entry.getKey());
+            queryString.append(entry.getKey()).append(' ');
 
         return queryBuilder.buildQuery(targetField, queryString.toString());
     }

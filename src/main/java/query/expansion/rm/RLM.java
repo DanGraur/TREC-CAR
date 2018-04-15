@@ -111,6 +111,8 @@ public class RLM {
             /* Get the document vector */
             DocumentVector docV = DocumentVector.getDocumentVector(luceneDocId, indexSearcher.getIndexReader(), targetField);
 
+
+
             /* Defensive check - see if the document vector has indeed been created */
             if(docV == null)
                 continue;
@@ -150,10 +152,6 @@ public class RLM {
             /* If this is the first time we are recording the probability for this document, then add it; else something wrong has happened */
             if(!hash_P_Q_Given_D.containsKey(luceneDocId))
                 hash_P_Q_Given_D.put(luceneDocId, p_Q_GivenD);
-            else {
-                System.err.println("Error while pre-calculating P(Q|d). "
-                        + "For luceneDocId: " + luceneDocId + ", P(Q|d) already existed.");
-            }
         }
 
     }

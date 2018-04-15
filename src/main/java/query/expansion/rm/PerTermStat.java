@@ -7,7 +7,7 @@ package query.expansion.rm;
 public class PerTermStat {
 
     /**
-     * The actual t for which the statistics is getting calculated and stored
+     * The actual term for which the statistics are getting calculated and stored
      */
     public String  t;
 

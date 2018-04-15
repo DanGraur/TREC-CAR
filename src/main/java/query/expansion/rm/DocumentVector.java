@@ -1,7 +1,9 @@
 package query.expansion.rm;
 
 import org.apache.lucene.index.*;
+import org.apache.lucene.search.similarities.ClassicSimilarity;
 import org.apache.lucene.util.BytesRef;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -15,15 +17,15 @@ public class DocumentVector {
     /**
      * PerTermStat of the Document.
      */
-    public HashMap<String, PerTermStat>     docPerTermStat;
+    public HashMap<String, PerTermStat> docPerTermStat;
     /**
      * Size of the Document.
      */
-    private int                              size;
+    private int size;
     /**
-     * The retrieval score of the document after a retrieval. *Mostly unused*
+     * The retrieval score of the document after a retrieval.
      */
-    private float                            docScore;   // retrieval score
+    private float docScore;   // retrieval score
 
     public DocumentVector() {
         docPerTermStat = new HashMap<>();
@@ -92,79 +94,74 @@ public class DocumentVector {
         return dv;
     }
 
-    public static DocumentVector getDocumentVector(int luceneDocId, IndexReader indexReader, String targetField) throws IOException {
+    public static DocumentVector getDocumentVector(int luceneDocId, @NotNull IndexReader indexReader, String targetField) throws IOException {
         DocumentVector dv = new DocumentVector();
         int docSize = 0;
 
-        if(indexReader==null) {
-            System.out.println("Error: null == indexReader in showDocumentVector(int,IndexReader)");
-            System.exit(1);
-        }
-
-//        Terms terms = indexReader.getTermVector(luceneDocId, targetField);
-
-        Fields fields = indexReader.getTermVectors(luceneDocId);
-        Terms terms = fields.terms(targetField);
-
-//        System.out.println("ASD: " + terms);
+        Terms terms = indexReader.getTermVector(luceneDocId, targetField);
 
         if(null == terms) {
-            System.err.println("Error getDocumentVector(): Term vectors not indexed: "+luceneDocId);
+            System.err.println("Error getDocumentVector(): Term vectors not indexed: " + luceneDocId);
             return null;
         }
 
+        /* Declare the similarity which will allow us to compute the IDF */
+        ClassicSimilarity similarity = new ClassicSimilarity();
+        int docNumber = indexReader.maxDoc();
+        long vocabularySize = getVocabularySize(indexReader, targetField);
+
+//        System.out.println(vocabularySize);
+
+        /* Instantiations for iteration later on */
         TermsEnum iterator = terms.iterator();
         BytesRef byteRef;
 
-        //* for each word in the document
+        /* Iterate through each of the indexed terms of the document */
         while((byteRef = iterator.next()) != null) {
             String term = new String(byteRef.bytes, byteRef.offset, byteRef.length);
-            //int docFreq = iterator.docFreq();            // df of 't'
-            long termFreq = iterator.totalTermFreq();    // tf of 't'
-            //System.out.println(t+": tf: "+termFreq);
+
+            /* Get the word frequency within the document */
+            long termFreq = iterator.totalTermFreq();
+
+            /* Accumulate the number of words the document, so as to normalize later */
             docSize += termFreq;
+
+            /* Check the outputs */
+//            System.out.println("Term: '" + term + "' has frequency: " + termFreq);
+//            System.out.println("Term: " + term + " Document frequency " + indexReader.docFreq(new Term(targetField, byteRef)));
 
             //* termFreq = cf, in a document; df = 1, in a document
             //dv.docPerTermStat.put(t, new PerTermStat(t, termFreq, 1));
-            dv.docPerTermStat.put(term, new PerTermStat(term, termFreq, 1, getIdf(term, indexReader, targetField), getCollectionProbability(term, indexReader, targetField)));
+            dv.docPerTermStat.put(
+                    term,
+                    new PerTermStat(
+                            term,
+                            termFreq,
+                            1,
+                            similarity.idf(indexReader.docFreq(new Term(targetField, byteRef)), docNumber),
+                            getCollectionProbability(term, indexReader, targetField, vocabularySize)
+                    )
+            );
         }
         dv.size = docSize;
-        //System.out.println("DocSize: " + docSize);
 
         return dv;
-    }
-
-    public static double getIdf(String term, IndexReader indexReader, String fieldName) throws IOException {
-        int docCount = indexReader.maxDoc();      // total number of documents in the index
-        Fields fields = MultiFields.getFields(indexReader);
-        Term termInstance = new Term(fieldName, term);
-        long df = indexReader.docFreq(termInstance);       // DF: Returns the number of documents containing the term
-
-        double idf;
-        idf = Math.log((float)(docCount)/(float)(df+1));
-
-        return idf;
     }
 
     public static long getVocabularySize(IndexReader indexReader, String field) throws IOException {
         Fields fields = MultiFields.getFields(indexReader);
         Terms terms = fields.terms(field);
-        if(null == terms) {
-            System.err.println("Field: "+field);
-            System.err.println("Error buildCollectionStat(): terms Null found");
-        }
-        long vocSize = terms.getSumTotalTermFreq();  // total number of terms in the index in that field
 
-        return vocSize;
+        return terms.getSumTotalTermFreq();
     }
 
 
-    public static float getCollectionProbability(String term, IndexReader reader, String fieldName) throws IOException {
+    public static float getCollectionProbability(String term, IndexReader reader, String fieldName, long vocaularySize) throws IOException {
 
         Term termInstance = new Term(fieldName, term);
         long termFreq = reader.totalTermFreq(termInstance); // CF: Returns the total number of occurrences of term across all documents (the sum of the freq() for each doc that has this term).
 
-        return (float) termFreq / (float) getVocabularySize(reader, fieldName);
+        return (float) termFreq / (float) vocaularySize;
     }
 
     /**

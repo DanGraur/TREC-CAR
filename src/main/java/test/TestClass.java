@@ -74,9 +74,8 @@ public class TestClass {
                 ID_FIELD,
 //                null,
 //                new Rocchio(1f, 0.0f, 10, 5, TARGET_FIELD, analyzer, queryBuilder),
-                new RelevanceBasedLanguageModel(10, 5, TARGET_FIELD, analyzer, queryBuilder, 0.7f, 0.7f),
+                new RelevanceBasedLanguageModel(10, 5, TARGET_FIELD, analyzer, queryBuilder, 0.7f, 0.7f, RelevanceBasedLanguageModel.RMType.RM3),
                 VERBOSE
-
         );
 
         /* Initiate the query solver */
