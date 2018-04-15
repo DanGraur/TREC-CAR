@@ -59,4 +59,26 @@ public class PerTermStat {
         this.idf = idf;
         this.norm_cf = rcf;
     }
+
+    /**
+     * Add a delta quantity to the DF field
+     *
+     * @param addDf the delta quantity
+     * @return the new value
+     */
+    public long incrementDF(long addDf) {
+        df += addDf;
+        return df;
+    }
+
+    /**
+     * Add a delta quantity to the CF field
+     *
+     * @param addCf the delta quantity
+     * @return the new value
+     */
+    public long incrementCF(long addCf) {
+        df += addCf;
+        return df;
+    }
 }

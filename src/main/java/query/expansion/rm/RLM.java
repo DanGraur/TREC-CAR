@@ -35,7 +35,7 @@ public class RLM {
      */
     private int numFeedbackDocs;
     /**
-     *  mixing weight, used for doc-col weight adjustment
+     * mixing weight, used for doc-col weight adjustment
      */
     private float mixingLambda;
     /**
@@ -69,7 +69,7 @@ public class RLM {
     private long vocabularySize;
 
 
-    public RLM(Analyzer analyzer, int numFeedbackDocs, int numFeedbackTerms, float lambda, float  mixingLambda, String targetField) {
+    public RLM(Analyzer analyzer, int numFeedbackDocs, int numFeedbackTerms, float lambda, float mixingLambda, String targetField) {
         this.analyzer = analyzer;
         this.numFeedbackDocs = numFeedbackDocs;
         this.numFeedbackTerms = numFeedbackTerms;
@@ -78,11 +78,10 @@ public class RLM {
         this.targetField = targetField;
     }
 
-
     /**
-     * Compute P(Q|d) probabilities given a set of set of relevant documents for the initial query, and the tokenized query itself
+     * Compute P(Q|d) probabilities given: a set of set of relevant documents for the initial query, and the tokenized query itself
      *
-     * @param hits a set of set of relevant documents for the initial query
+     * @param hits          a set of set of relevant documents for the initial query
      * @param analyzedQuery the tokenized query itself
      * @throws IOException
      */
@@ -107,14 +106,11 @@ public class RLM {
         List<Integer> docIds = Utils.getDocumentIds(indexSearcher, numFeedbackDocs);
 
         for (Integer luceneDocId : docIds) {
-
             /* Get the document vector */
             DocumentVector docV = DocumentVector.getDocumentVector(luceneDocId, indexSearcher.getIndexReader(), targetField);
 
-
-
             /* Defensive check - see if the document vector has indeed been created */
-            if(docV == null)
+            if (docV == null)
                 continue;
 
             /* Add the vector of the relevant documents in a map */
@@ -127,12 +123,13 @@ public class RLM {
                 PerTermStat value = entrySet.getValue();
 
                 /* If the term does not exist in the feedbackTermStats, then add it together with its initial stats */
-                if(!feedbackTermStats.containsKey(key))
+                if (!feedbackTermStats.containsKey(key))
                     feedbackTermStats.put(key, new PerTermStat(key, value.getCF(), value.getDF()));
                 else {
-                    /* If it does exist, then update the Corpus Frequency and the Document Frequency of the term in the feedbackTermStats map */
-                    value.setCF(value.getCF() + feedbackTermStats.get(key).getCF());
-                    value.setDF(value.getDF() + feedbackTermStats.get(key).getDF());
+                    /* If it does exist (seen in a previous document), then update the Corpus Frequency and the Document Frequency of the term in the feedbackTermStats map */
+                    value.incrementCF(feedbackTermStats.get(key).getCF());
+                    value.incrementDF(feedbackTermStats.get(key).getDF());
+
                     feedbackTermStats.put(key, value);
                 }
             }
@@ -140,7 +137,6 @@ public class RLM {
 
         /* Calculate the P(Q|d) probability for each initially relevant document */
         for (Map.Entry<Integer, DocumentVector> entrySet : feedbackDocumentVectors.entrySet()) {
-            // for each feedback document
             int luceneDocId = entrySet.getKey();
             DocumentVector docV = entrySet.getValue();
 
@@ -148,35 +144,31 @@ public class RLM {
 
             /* Assume unigram model, hence independent probabilities, hence product */
             for (String qTerm : analyzedQuery)
-                p_Q_GivenD *= return_Smoothed_MLE(qTerm, docV);
+                p_Q_GivenD *= computeSmoothedMLE(qTerm, docV);
             /* If this is the first time we are recording the probability for this document, then add it; else something wrong has happened */
-            if(!hash_P_Q_Given_D.containsKey(luceneDocId))
+            if (!hash_P_Q_Given_D.containsKey(luceneDocId))
                 hash_P_Q_Given_D.put(luceneDocId, p_Q_GivenD);
         }
-
     }
 
     /**
      * Compute the Smoothed Maximum Likelihood Estimate
      *
-     * @param t the term whose MLE is computed
+     * @param t  the term whose MLE is computed
      * @param dv the vector representing the Document in cause
      * @return the MLE of the term given the document vector
      */
-    public float return_Smoothed_MLE(String t, DocumentVector dv) {
+    public float computeSmoothedMLE(String t, DocumentVector dv) {
         float smoothedMLEofTerm = 1;
         PerTermStat docPTS;
 
-//        HashMap<String, PerTermStat>     docPerTermStat = dv.getDocPerTermStat();
-//        docPTS = docPerTermStat.get(t);
         docPTS = dv.docPerTermStat.get(t);
-//        colPTS = collStat.perTermStat.get(t);
         PerTermStat colPTS = feedbackTermStats.get(t);
 
         if (colPTS != null) {
             smoothedMLEofTerm =
-                    ((docPTS!=null)?(mixingLambda * (float)docPTS.getCF() / (float)dv.getDocSize()):(0)) +
-                            ((feedbackTermStats.get(t)!=null)?((1.0f-mixingLambda)*(float)feedbackTermStats.get(t).getCF()/(float) vocabularySize):0);
+                    ((docPTS != null) ? (mixingLambda * (float) docPTS.getCF() / (float) dv.getDocSize()) : 0) +
+                            ((feedbackTermStats.get(t) != null) ? ((1.0f - mixingLambda) * (float) feedbackTermStats.get(t).getCF() / (float) vocabularySize) : 0);
         }
 
         return smoothedMLEofTerm;
@@ -184,46 +176,44 @@ public class RLM {
 
     /**
      * mixingLambda*tf(t,d)/d-size + (1-mixingLambda)*cf(t)/col-size
+     *
      * @param pts
-     * @param dv The document vector under consideration
+     * @param dv  The document vector under consideration
      * @return MLE of t in a document dv, smoothed with collection statistics
      * @throws IOException IOException
      */
-    public float return_Smoothed_MLE(PerTermStat pts, DocumentVector dv) {
+    public float computeSmoothedMLE(PerTermStat pts, DocumentVector dv) {
 
         float smoothedMLEofTerm;
         PerTermStat docPTS;
         PerTermStat colPTS;
 
-//        HashMap<String, PerTermStat>     docPerTermStat = dv.getDocPerTermStat();
-//        docPTS = docPerTermStat.get(t);
         docPTS = dv.docPerTermStat.get(pts.t);
-//        colPTS = collStat.perTermStat.get(t);
 
         smoothedMLEofTerm =
-                ((docPTS!=null)?(mixingLambda * (float)docPTS.getCF() / (float)dv.getDocSize()):(0))
-                        + (1.0f-mixingLambda)*((float)pts.getCF()/(float) vocabularySize);
+                ((docPTS != null) ? (mixingLambda * (float) docPTS.getCF() / (float) dv.getDocSize()) : (0))
+                        + (1.0f - mixingLambda) * ((float) pts.getCF() / (float) vocabularySize);
 //            + ((colPTS!=null)?((1.0f-mixingLambda)*(float)colPTS.getCF() / (float)vocabularySize):(0));
 
         return smoothedMLEofTerm;
-    } // ends return_Smoothed_MLE()
+    } // ends computeSmoothedMLE()
 
 
     /**
      * Computes the frequency of the term qTerm given the query qTerms (as String[])
      *
      * @param qTerms the query
-     * @param qTerm the term
+     * @param qTerm  the term
      * @return the term's frequency in the query
      */
     public float returnMLE_of_q_in_Q(String[] qTerms, String qTerm) {
-        int count=0;
+        int count = 0;
 
         for (String queryTerm : qTerms)
             if (qTerm.equals(queryTerm))
                 ++count;
 
-        return ((float)count / (float)qTerms.length);
+        return ((float) count / (float) qTerms.length);
     }
 
     /**
@@ -244,14 +234,13 @@ public class RLM {
 
         /* Iterate over each term from the set of relevant documents */
         for (Map.Entry<String, PerTermStat> entrySet : feedbackTermStats.entrySet()) {
-            /* Get the term itself, and get the probability for this particular  */
+            /* Get the term itself, and get the probability for this particular term */
             String t = entrySet.getKey();
             p_W_GivenR_one_doc = 0;
 
-            /* Compute the P(w|R) probability (w is the word and R is the relevant document collection) by using all the relevant documents */
+            /* Compute the P(w|R) = \sum_{d \in D_r} P(w|d) * P(Q|d)  probability (w is the word and R is the relevant document collection) by using all the relevant documents */
             for (Map.Entry<Integer, DocumentVector> docEntrySet : feedbackDocumentVectors.entrySet())
-                p_W_GivenR_one_doc += return_Smoothed_MLE(entrySet.getValue(), feedbackDocumentVectors.get(docEntrySet.getKey())) *
-                        hash_P_Q_Given_D.get(docEntrySet.getKey());
+                p_W_GivenR_one_doc += computeSmoothedMLE(entrySet.getValue(), feedbackDocumentVectors.get(docEntrySet.getKey())) * hash_P_Q_Given_D.get(docEntrySet.getKey());
 
             /* Add the probability of this particular word to the collection */
             list_PwGivenR.add(new WordProbability(t, p_W_GivenR_one_doc));
@@ -270,13 +259,19 @@ public class RLM {
 
 
     public Map<String, WordProbability> RM3(String[] analyzedQuery) {
-        /* By running RM1 we'll have the word -> probability | R in hashmap_PwGivenR */
+        /* By running RM1 we'll have the word -> probability given q and R in hashmap_PwGivenR */
         RM1();
 
-        /*  */
-        int maxSize = list_PwGivenR.size() > numFeedbackDocs + 1 ? numFeedbackDocs + 1 : list_PwGivenR.size();
+//        for (WordProbability entry : list_PwGivenR) {
+//            System.out.println(entry.w + " " + entry.p_w_given_R);
+//        }
 
-        /* Only consider a subset of the extracted term set */
+//        System.out.println("\n");
+
+        /* Determine the number of words worth analyzing (i.e. max between the: numFeedbackTerms + 1 or size of the list ) */
+        int maxSize = list_PwGivenR.size() > numFeedbackTerms + 1 ? numFeedbackTerms + 1 : list_PwGivenR.size();
+
+        /* Only consider a subset of the extracted term set, i.e. those with the highest probabilities */
         List<String> reducedProbabilities = new ArrayList<>(list_PwGivenR)
                 .subList(0, maxSize)
                 .stream()
@@ -309,7 +304,7 @@ public class RLM {
         for (String qTerm : analyzedQuery) {
             float probability = (1.0f - lambda) * returnMLE_of_q_in_Q(analyzedQuery, qTerm);
 
-            if (hashmap_PwGivenR.containsKey(qTerm)) { // qTerm is in R
+            if (hashmap_PwGivenR.containsKey(qTerm)) {
                 hashmap_PwGivenR.get(qTerm).p_w_given_R += probability;
                 normalizationFactor += probability;
             } else
@@ -340,32 +335,4 @@ public class RLM {
         return vocabularySize;
     }
 
-//    /**
-//     * Returns the expanded query in BooleanQuery form with P(w|R) as
-//     * corresponding weights for the expanded terms
-//     * @param expandedQuery The expanded query
-//     * @param query The query
-//     * @return BooleanQuery to be used for consequent re-retrieval
-//     * @throws Exception
-//     */
-//    public BooleanQuery getExpandedQuery(HashMap<String, WordProbability> expandedQuery) {
-//
-//        BooleanQuery booleanQuery = new BooleanQuery();
-//
-//        for (Map.Entry<String, WordProbability> entrySet : expandedQuery.entrySet()) {
-//            String key = entrySet.getKey();
-//            if(key.contains(":"))
-//                continue;
-//            WordProbability wProba = entrySet.getValue();
-//            float value = wProba.p_w_given_R;
-//
-//            Term t = new Term(rblm.fieldToSearch, key);
-//            Query tq = new TermQuery(t);
-//            tq.setBoost(value);
-//            BooleanQuery.setMaxClauseCount(4096);
-//            booleanQuery.add(tq, BooleanClause.Occur.SHOULD);
-//        }
-//
-//        return booleanQuery;
-//    } // ends getExpandedQuery()
 }

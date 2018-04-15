@@ -79,11 +79,11 @@ public class RelevanceBasedLanguageModel implements Expander {
                         )
         );
 
-        for (Map.Entry<String, WordProbability> entry : termMap) {
-            System.out.println(entry.getKey() + " " + entry.getValue().p_w_given_R);
-        }
+//        for (Map.Entry<String, WordProbability> entry : termMap) {
+//            System.out.println(entry.getKey() + " " + entry.getValue().p_w_given_R);
+//        }
 
-        System.out.println("\n");
+//        System.out.println("\n");
 
         /* Build the query */
         StringBuilder queryString = new StringBuilder();
